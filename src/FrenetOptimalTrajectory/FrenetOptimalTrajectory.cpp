@@ -1,7 +1,12 @@
+#include <iostream>
+
 #include "FrenetOptimalTrajectory.h"
 #include "QuarticPolynomial.h"
 #include "QuinticPolynomial.h"
 #include "utils.h"
+#ifdef USE_RECORDER
+    #include "tool/recorder.h"
+#endif
 
 // Compute the frenet optimal trajectory
 FrenetOptimalTrajectory::FrenetOptimalTrajectory(
@@ -12,6 +17,8 @@ FrenetOptimalTrajectory::FrenetOptimalTrajectory(
     x.assign(fot_ic->wx, fot_ic->wx + fot_ic->nw);
     y.assign(fot_ic->wy, fot_ic->wy + fot_ic->nw);
     setObstacles();
+
+    // std::cout <<  << '\n';
 
     // make sure best_frenet_path is initialized
     best_frenet_path = nullptr;
@@ -61,6 +68,7 @@ void FrenetOptimalTrajectory::calc_frenet_paths() {
     FrenetPath* fp, *tfp;
 
     double di = -fot_hp->max_road_width_l;
+    // std::cout << di << std::endl;
     // generate path to each offset goal
     while (di <= fot_hp->max_road_width_r) {
         ti = fot_hp->mint;
@@ -80,6 +88,7 @@ void FrenetOptimalTrajectory::calc_frenet_paths() {
             t = 0;
             while (t <= ti) {
                 fp->t.push_back(t);
+                // std::cout << fp->t.front() << std::endl;
                 fp->d.push_back(lat_qp.calc_point(t));
                 fp->d_d.push_back(lat_qp.calc_first_derivative(t));
                 fp->d_dd.push_back(lat_qp.calc_second_derivative(t));
@@ -89,10 +98,20 @@ void FrenetOptimalTrajectory::calc_frenet_paths() {
                 lateral_acceleration += abs(lat_qp.calc_second_derivative(t));
                 lateral_jerk += abs(lat_qp.calc_third_derivative(t));
                 t += fot_hp->dt;
+
+                
+
+                #ifdef USE_RECORDER
+                    Recorder::getInstance()->saveData<double>("FrenetOptimalTrajectory::calc_frenet_paths()::FrenetPath::s", tfp->s.back());
+                    Recorder::getInstance()->saveData<double>("FrenetOptimalTrajectory::calc_frenet_paths()::FrenetPath::s_d", tfp->s_d.back());
+                    Recorder::getInstance()->saveData<double>("FrenetOptimalTrajectory::calc_frenet_paths()::FrenetPath::s_dd", tfp->s_dd.back());
+                    Recorder::getInstance()->saveData<double>("FrenetOptimalTrajectory::calc_frenet_paths()::FrenetPath::s_ddd", tfp->s_ddd.back());
+                #endif
+
             }
 
             // velocity keeping
-            tv = fot_ic->target_speed - fot_hp->d_t_s * fot_hp->n_s_sample;
+            tv = fot_ic->target_speed - fot_hp->d_t_s * fot_hp->n_s_sample; // target velocity gets changed
             while (tv <= fot_ic->target_speed + fot_hp->d_t_s * fot_hp->n_s_sample) {
                 longitudinal_acceleration = 0;
                 longitudinal_jerk = 0;

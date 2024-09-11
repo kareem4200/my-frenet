@@ -6,10 +6,14 @@
 
 #include <vector>
 
+#ifdef USE_RECORDER
+    #include "tool/recorder.h"
+#endif
+
 using namespace std;
 
 // C++ wrapper to expose the FrenetOptimalTrajectory class to python
-extern "C" {
+extern "C" { // This disables name mangling to make the code linkable to other C-like languages
     // Compute the frenet optimal trajectory given initial conditions
     // in frenet space.
     //
@@ -34,6 +38,12 @@ extern "C" {
             FrenetReturnValues *fot_rv
             ) {
         FrenetOptimalTrajectory fot = FrenetOptimalTrajectory(fot_ic, fot_hp);
+
+        #ifdef USE_RECORDER
+            // write recorded data to csv file
+            Recorder::getInstance()->writeDataToCSV();
+        #endif
+
         FrenetPath* best_frenet_path = fot.getBestPath();
         if (best_frenet_path && !best_frenet_path->x.empty()){
             int last = 0;
