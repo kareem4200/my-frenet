@@ -15,6 +15,15 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Eigen3)
 
+option(USE_RECORDER "Use recorder" ON)
+
+set(recorder_file ${recorder_file})
+if (USE_RECORDER)
+  MESSAGE(STATUS "USE_RECORDER=ON")
+  add_definitions(-DUSE_RECORDER)
+  set(recorder_file ${recorder_file} tool/recorder.h tool/recorder.cpp)
+endif()
+
 if(Eigen3_FOUND)
     set(CUSTOM_EIGEN ${EIGEN3_INCLUDE_DIR})
 else()
@@ -54,7 +63,9 @@ add_library(FrenetOptimalTrajectory SHARED
             src/Obstacle/Obstacle.cpp
             src/Obstacle/Obstacle.h
             src/Car/Car.cpp
-            src/Car/Car.h)
+            src/Car/Car.h
+            ${recorder_file})
+            
 add_executable(FrenetOptimalTrajectoryTest
                src/main.cpp
                src/utils.h
@@ -75,6 +86,8 @@ add_executable(FrenetOptimalTrajectoryTest
                src/Obstacle/Obstacle.cpp
                src/Obstacle/Obstacle.h
                src/Car/Car.cpp
-               src/Car/Car.h)
+               src/Car/Car.h
+               ${recorder_file})
+
 target_link_libraries(FrenetOptimalTrajectory Eigen3::Eigen Qt5::Widgets Qt5::Gui)
 target_link_libraries(FrenetOptimalTrajectoryTest Eigen3::Eigen Qt5::Widgets Qt5::Gui)
