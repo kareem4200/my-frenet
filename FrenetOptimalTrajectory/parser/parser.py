@@ -1,11 +1,5 @@
-import os
-import sys
-from commonroad.common.file_reader import CommonRoadFileReader
-from commonroad.scenario.obstacle import ObstacleRole, DynamicObstacle, StaticObstacle, Obstacle
+from commonroad.scenario.obstacle import ObstacleRole
 from commonroad.common.util import Interval
-from commonroad.visualization.draw_params import DynamicObstacleParams
-from commonroad.geometry.shape import Rectangle
-from commonroad.scenario.state import InitialState, PMState
 from commonroad.scenario.scenario import Scenario
 from typing import List
 from commonroad.planning.planning_problem import PlanningProblem
@@ -13,9 +7,22 @@ from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_route_planner.route import Route
 from commonroad.common.validity import is_integer_number
 import numpy as np
+from math import inf
 
 class Parser():
-      def __init__(self, scenario, planning_problem, x_interval, y_interval):
+      """
+      Parses the required initial conditions for Frenet
+      
+      Args:
+            scenario object.
+            planning problem object.
+            Optionally X and Y interval to search for obstacles in (-inf, inf).
+      """
+      def __init__(self, scenario, 
+                   planning_problem, 
+                   x_interval=Interval(-inf, inf), 
+                   y_interval=Interval(-inf, inf)):
+            
             self.scenario: Scenario = scenario
             # needs to be changed to list to support multiple planning problems
             self.planning_problem: PlanningProblem = planning_problem
@@ -24,6 +31,13 @@ class Parser():
             self.y_interval: Interval = y_interval
       
       def filter_obstacles(self):
+            """
+            Filters scenario obstacles into static and dynamic obstacles lists
+            
+            Returns:
+                  List of static obstacles objects.
+                  List of dynamic obstacles objects.
+            """
             static, dynamic = [], []
             obstacles = self.scenario.obstacles_by_position_intervals([self.x_interval, self.y_interval], \
                                                                   (ObstacleRole.DYNAMIC, ObstacleRole.STATIC))
@@ -36,6 +50,12 @@ class Parser():
             return static, dynamic
       
       def parse_static_obstacles(self):
+            """
+            Gets the rear left and front right coordinates of the filtered static obstacles.
+            
+            Returns:
+                  List of static obstacles coordinates.
+            """
             s_obstacles, _ = Parser.filter_obstacles(self)
             s_obstacles_list = []
             for obs in s_obstacles:
@@ -49,6 +69,15 @@ class Parser():
             return s_obstacles_list
       
       def parse_dynamic_obstacles(self, time_step: int):
+            """
+            Gets the rear left and front right coordinates of the filtered dynamic obstacles.
+            
+            Args:
+                  The desired time step.
+            
+            Returns:
+                  List of static obstacles coordinates.
+            """
             assert is_integer_number(time_step)
             _, d_obstacles = Parser.filter_obstacles(self)
             d_obstacles_list = []
@@ -63,6 +92,16 @@ class Parser():
             return d_obstacles_list
       
       def parse_obstacles(self, time_step: int):
+            """
+            Calls parse_static_obstacles and parse_dynamic_obstacles.
+            It parses the static obstacles only once at time step 0.
+            
+            Args:
+                  The desired time step.
+            
+            Returns:
+                  A combined list of static and dynamic obstacles.
+            """
             if time_step == 0:
                   self.static_obstacles = self.parse_static_obstacles()
                   return self.static_obstacles + self.parse_dynamic_obstacles(time_step=time_step)
@@ -70,6 +109,15 @@ class Parser():
                   return self.static_obstacles + self.parse_dynamic_obstacles(time_step=time_step)
             
       def parse_initial_position(self, x_only: bool):
+            """
+            Gets the initial position of the Ego vehicle.
+            
+            Args:
+                  A boolean value indicating whether to get X position only or X and Y position
+            
+            Returns:
+                  A float of X position or an array of X and Y position.
+            """
             if x_only:
                   return self.planning_problem.initial_state.position[0]
             else:
@@ -81,7 +129,16 @@ class Parser():
             return [vel, vel]
       
       def parse_waypoints(self, initial_state: np.array, goal_state: np.array):
-            # print(self.planning_problem.initial_state.position)
+            """
+            Calculates a set of waypoints from the initial position to goal position.
+            
+            Args:
+                  The initial state numpy array.
+                  The goal state numpy array.
+            
+            Returns:
+                  A list of X and Y waypoints.
+            """
             route: Route = RoutePlanner(self.scenario, self.planning_problem).plan_routes().retrieve_best_route_by_orientation()
             instruction = route._compute_lane_change_instructions()
             list_portions = route._compute_lanelet_portion(instruction)
