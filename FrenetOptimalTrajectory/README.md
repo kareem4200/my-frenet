@@ -30,6 +30,7 @@
       - **. . .**
     - **frenet_commonroad.ipynb**: Main notebook for solving CommonRoad scenarios using Frenet (make sure to change the scenario_path to your global path and the .so file global path in fot_wrapper.py)
     - **Misc_Functions.ipynb**: Contains code to other miscelaneous function like planning for all scenarios, analyze criticality for sceenarios, etc...
+    **Scenario Lane Width-Sheet.pdf**: PDF containing the max_road_width_l and max_road_width_r for all scenarios. Assumming Ego vehicle is exactly in the middle!
   - **README.md**: README
 
 ---
