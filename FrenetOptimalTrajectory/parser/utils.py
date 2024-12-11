@@ -66,13 +66,14 @@ def visualize_solution(
     # defines the initial state of the ego vehicle (changes each planning step)
     dynamic_obstacle_initial_state = InitialState(
         # position=trajectory.state_list[0].position,
-        position=planning_problem_set.initial_state.position if t_s == 0 else drawn_trajectory.state_list[0].position,
+        position=planning_problem_set.initial_state.position if t_s == 0 else excuted_trajectory.state_list[0].position,
         orientation=excuted_trajectory.state_list[0].orientation,
         velocity=excuted_trajectory.state_list[0].velocity,
         time_step=excuted_trajectory.state_list[0].time_step,
         yaw_rate=0,
         slip_angle=0,
     )
+    print(excuted_trajectory.state_list[0].orientation)
     
     # create the ego vehicle prediction using the trajectory and the shape of the obstacle
     dynamic_obstacle_shape = Rectangle(width=1.8, length=4.3)

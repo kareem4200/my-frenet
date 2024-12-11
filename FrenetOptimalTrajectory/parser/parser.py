@@ -150,7 +150,7 @@ class Parser():
             distances = [np.linalg.norm(np.array(point) - np.array(goal_state)) for point in reference_path]
             goal_index = distances.index(min(distances))
             
-            reference_path = reference_path[start_index:goal_index+1]
+            reference_path = reference_path[start_index:goal_index+3]
             
             return reference_path.tolist()
 
