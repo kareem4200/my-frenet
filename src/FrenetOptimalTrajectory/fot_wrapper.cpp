@@ -3,8 +3,12 @@
 #include "py_cpp_struct.h"
 #include "CubicSpline2D.h"
 #include "utils.h"
+#ifdef USE_RECORDER
+    #include "tool/recorder.h"
+#endif
 
 #include <vector>
+#include <iostream>
 
 using namespace std;
 
@@ -33,9 +37,22 @@ extern "C" {
             FrenetInitialConditions *fot_ic, FrenetHyperparameters *fot_hp,
             FrenetReturnValues *fot_rv
             ) {
+        #ifdef USE_RECORDER
+            Recorder::getInstance()->saveData<double>("fot_ic::s", fot_ic->s0);
+            Recorder::getInstance()->saveData<double>("fot_ic::c_speed", fot_ic->c_speed);
+            Recorder::getInstance()->saveData<double>("fot_ic::c_d", fot_ic->c_d);
+            Recorder::getInstance()->saveData<double>("fot_ic::c_d_d", fot_ic->c_d_d);
+        #endif
         FrenetOptimalTrajectory fot = FrenetOptimalTrajectory(fot_ic, fot_hp);
         FrenetPath* best_frenet_path = fot.getBestPath();
+        // std::cout << "CPP wrapper" << std::endl;
+        // std::cout << best_frenet_path->x.empty() << std::endl;
+        #ifdef USE_RECORDER
+            // write recorded data to csv file
+            Recorder::getInstance()->writeDataToCSV();
+        #endif
         if (best_frenet_path && !best_frenet_path->x.empty()){
+            std::cout << "In if" << std::endl;
             int last = 0;
             for (size_t i = 0; i < best_frenet_path->x.size(); i++) {
                 fot_rv->x_path[i] = best_frenet_path->x[i];
@@ -51,9 +68,14 @@ extern "C" {
                 fot_rv->speeds_y[i] = sin(best_frenet_path->yaw[i]) *
                     fot_rv->speeds[i];
                 last += 1;
+                #ifdef USE_RECORDER
+                    Recorder::getInstance()->saveData<double>("best_frenet_path->x[i]", best_frenet_path->x[i]);
+                    Recorder::getInstance()->saveData<double>("best_frenet_path->y[i]", best_frenet_path->y[i]);
+                #endif
             }
 
             // indicate last point in the path
+            std::cout << "wrapper here" << std::endl;
             fot_rv->success = 1;
             fot_rv->x_path[last] = NAN;
             fot_rv->y_path[last] = NAN;
@@ -86,6 +108,8 @@ extern "C" {
             fot_rv->costs[9] = best_frenet_path->c_longitudinal;
             fot_rv->costs[10] = best_frenet_path->c_inv_dist_to_obstacles;
             fot_rv->costs[11] = best_frenet_path->cf;
+
+            // std::cout << fot_rv->success << std::endl;
         }
     }
 
@@ -95,6 +119,11 @@ extern "C" {
             double vy, double forward_speed, double* xp, double* yp, int np,
             double* initial_conditions
             ) {
+        #ifdef USE_RECORDER
+            Recorder::getInstance()->saveData<double>("to_frenet_initial_conditions::s0", s0);
+            Recorder::getInstance()->saveData<double>("to_frenet_initial_conditions::x", x);
+            Recorder::getInstance()->saveData<double>("to_frenet_initial_conditions::y", y);
+        #endif
         vector<double> wx (xp, xp + np);
         vector<double> wy (yp, yp + np);
         CubicSpline2D* csp = new CubicSpline2D(wx, wy);
