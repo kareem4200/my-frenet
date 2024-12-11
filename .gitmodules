@@ -1,0 +1,4 @@
+[submodule "frenet_optimal_trajectory_planner"]
+	path = frenet_optimal_trajectory_planner
+	url = https://github.com/wenguang1111/frenet_optimal_trajectory_planner.git
+	branch = develop
