@@ -281,7 +281,7 @@ def create_video(
 def visualize_scenario(
     scenario: Scenario, 
     planning_problem_set: PlanningProblemSet, 
-    waypoints = 0, 
+    waypoints, 
 ) -> None:
     """
     Plots the scenario, planning problem, waypoints, Ego vehicle, excuted, and full trajectory.
@@ -300,9 +300,9 @@ def visualize_scenario(
     scenario.draw(renderer)
         
     # Drawing waypoints
-    # circles = [Circle(radius = 0.5, center = np.array(wp)) for wp in waypoints]
-    # for c in circles:
-    #     c.draw(renderer)
+    circles = [Circle(radius = 0.5, center = np.array(wp)) for wp in waypoints]
+    for c in circles:
+        c.draw(renderer)
 
     planning_problem_set.draw(renderer)
     plt.gca().set_aspect("equal")
