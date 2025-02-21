@@ -45,11 +45,14 @@ def create_trajectory_from_list_states(list_paths_primitives: List[List[PMState]
 def visualize_solution(
     scenario: Scenario, 
     planning_problem_set: PlanningProblemSet, 
-    drawn_trajectory: Trajectory, 
+    drawn_trajectories: List[Trajectory], 
     excuted_trajectory: Trajectory,
+    full_trajectory: Trajectory,
     waypoints, 
     t_s,
-    obstacles
+    fig,
+    ax,
+    obstacles = None
 ) -> None:
     """
     Plots the scenario, planning problem, waypoints, Ego vehicle, excuted, and full trajectory.
@@ -57,12 +60,14 @@ def visualize_solution(
     Args:
         Scenario object.
         Planning problem object.
-        The drawn trajectory.
+        List of drawn trajectories.
         The excuted trajectory.
         List of waypoints.
         The current time step.
     """
-
+    
+    plt.ion()
+    
     num_time_steps = len(excuted_trajectory.state_list)
     
     # defines the initial state of the ego vehicle (changes each planning step)
@@ -75,10 +80,9 @@ def visualize_solution(
         yaw_rate=0,
         slip_angle=0,
     )
-    # print(excuted_trajectory.state_list[0].orientation)
     
     # create the ego vehicle prediction using the trajectory and the shape of the obstacle
-    dynamic_obstacle_shape = Rectangle(width=1.0, length=3.3)
+    dynamic_obstacle_shape = Rectangle(width=1.86, length=4.93)
     dynamic_obstacle_prediction = TrajectoryPrediction(
         excuted_trajectory, dynamic_obstacle_shape
     )
@@ -97,19 +101,21 @@ def visualize_solution(
     # Initialize the vehicle and trajectory drawing parameters
     ego_params = DynamicObstacleParams()
     traj_params = TrajectoryParams()
-    # draw_params = MPDrawParams()
+    sampled_traj_params = TrajectoryParams()
     ego_params.vehicle_shape.occupancy.shape.facecolor = "green"
-    # ego_params.draw_icon = True
-
-    # Loop on the number of time steps in the excuted trajectory (currently 2)
+    ego_params.draw_icon = True
+    
+    # Loop on the number of time steps in the excuted trajectory
     for i in range(0, num_time_steps):
-        display.clear_output(wait=True)
-        plt.figure(figsize=(25, 10))
-        renderer = MPRenderer()
+        ax.cla()
+        # display.clear_output(wait=True)
+        
+        renderer = MPRenderer(ax=ax)
+        renderer.ax = ax
         renderer.focus_obstacle_id = dynamic_obstacle_id
         renderer.draw_params.time_begin = excuted_trajectory.state_list[i].time_step
         renderer.draw_params.dynamic_obstacle.draw_shape = True
-        # renderer.draw_params.dynamic_obstacle.draw_icon = True
+        renderer.draw_params.dynamic_obstacle.draw_icon = True
         scenario.draw(renderer)
 
         # Drawing parameters of the excuted trajectory
@@ -120,43 +126,48 @@ def visualize_solution(
         ego_params.trajectory.zorder = 60
         ego_params.trajectory.line_width = 2
         
-        # Drawing parameters of the full trajectory
+        # Drawing parameters of the full trajectories
         traj_params.draw_trajectory = True
         traj_params.facecolor = "#6aa84f"
         traj_params.draw_continuous = True
         traj_params.zorder = 60
         traj_params.line_width = 2
         
-        # draw_params.dynamic_obstacle.show_label = False
-        # draw_params.dynamic_obstacle.draw_icon = True
-        # draw_params.dynamic_obstacle.draw_shape = True
+        sampled_traj_params.draw_trajectory = True
+        sampled_traj_params.facecolor = "#808080"
+        sampled_traj_params.draw_continuous = True
+        sampled_traj_params.zorder = 60
+        sampled_traj_params.line_width = 2
         
         # Drawing waypoints
         circles = [Circle(radius = 0.5, center = np.array(wp)) for wp in waypoints]
         for c in circles:
             c.draw(renderer)
-            
-        for o in obstacles:
-            circle_1 = Circle(radius=0.5, center=np.array([*o[:2]]))
-            circle_2 = Circle(radius=0.5, center=np.array([*o[2:]]))
-            circle_1.draw(renderer)
-            circle_2.draw(renderer)
+        
+        if obstacles is not None: 
+            for o in obstacles:
+                circle_1 = Circle(radius=0.5, center=np.array([*o[:2]]))
+                circle_2 = Circle(radius=0.5, center=np.array([*o[2:]]))
+                circle_1.draw(renderer)
+                circle_2.draw(renderer)
 
         # Drawing and rendering
-        drawn_trajectory.draw(renderer, draw_params=traj_params)
+        for drawn_trajectory in drawn_trajectories:
+            drawn_trajectory.draw(renderer, draw_params=sampled_traj_params)
+        full_trajectory.draw(renderer, draw_params=traj_params)
         ego_vehicle.draw(renderer, draw_params=ego_params)
         planning_problem_set.draw(renderer)
-        plt.gca().set_aspect("equal")
         renderer.render()
+        plt.pause(0.1)
+        plt.gca().set_aspect("equal")
         plt.show()
         
-
+# TODO: Modify the function to take the sampled trajectories
 def create_video(
     scenario: Scenario, 
     planning_problem_set: PlanningProblemSet, 
     excuted_trajectory: Trajectory,
-    waypoints,
-    obstacles):
+    waypoints):
     
     num_time_steps = len(excuted_trajectory.state_list)
     
@@ -173,7 +184,7 @@ def create_video(
     # print(excuted_trajectory.state_list[0].orientation)
     
     # create the ego vehicle prediction using the trajectory and the shape of the obstacle
-    dynamic_obstacle_shape = Rectangle(width=1.8, length=4.3)
+    dynamic_obstacle_shape = Rectangle(width=1.86, length=4.93)
     dynamic_obstacle_prediction = TrajectoryPrediction(
         excuted_trajectory, dynamic_obstacle_shape
     )
@@ -205,6 +216,7 @@ def create_video(
     ax = plt.gca()
     
     renderer = MPRenderer()
+    # renderer.ax
     renderer.focus_obstacle_id = dynamic_obstacle_id
     renderer.draw_params.time_begin = excuted_trajectory.state_list[0].time_step
     renderer.draw_params.dynamic_obstacle.draw_shape = True
