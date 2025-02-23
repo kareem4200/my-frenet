@@ -14,15 +14,16 @@ from commonroad_utils.parser.utils import create_trajectory_from_list_states, vi
 os.environ["SHOW_SAMPLING_PATH"] = "1"
 
 scenario_path = os.getcwd() + '/commonroad_utils/Critical_Transformed/'
-scenario_name = 'ITA_Empoli-7_3_T-1.xml'
+scenario_name = 'DEU_Flensburg-67_1_T-1.xml'
 # scenario_name = 'USA_US101-28_1_T-1.xml'
 
 scenario, planning_problem, pp_set = get_scenario(scenario_path, scenario_name)
 
+planning_problem.goal.state_list[0].position.center = np.array([2.0, -12.0])
 # Get the initial and goal positions
 start_pos = planning_problem.initial_state.position
 goal_pos = planning_problem.goal.state_list[0].position.center
-# print(start_pos, goal_pos)
+print(start_pos, goal_pos)
 # Calculate X and Y components on the initial velocity
 inital_vel = planning_problem.initial_state.velocity
 initial_orientation = planning_problem.initial_state.orientation
@@ -37,15 +38,15 @@ LEN_DRAW = 10     # The length of the drawn trajectory (Number of states)
 
 conds = {
       's0': parser.parse_initial_position(x_only=True),
-      'target_speed': 15.0,
+      'target_speed': 1.0,
       # 'target_speed': planner.x_0.velocity,  # Uncomment to parsing the target speed from the scenario
       'wp': parser.parse_waypoints(initial_state=start_pos, goal_state=goal_pos),
       'obs': parser.parse_obstacles(time_step=0),
       'pos': parser.parse_initial_position(x_only=False),
       # 'vel': [initial_vel_x, initial_vel_y], # Velocity in X and Y directions
-      'vel': [1, 1], # Velocity in X and Y directions
+      'vel': [-0.0, -0.3], # Velocity in X and Y directions
 }
-
+# print(initial_vel_x, initial_vel_y)
 initial_conditions = {
       'ps': conds['s0'],
       'target_speed': conds['target_speed'],
@@ -57,17 +58,17 @@ initial_conditions = {
 }
 
 hyperparameters = {
-      "max_speed": 100.0,
+      "max_speed": 1.5,
       "max_accel": 15.0,
       "max_curvature": 100.0,
-      "max_road_width_l": 2,
-      "max_road_width_r": 2,
+      "max_road_width_l": 1.75,
+      "max_road_width_r": 1.75,
       "d_road_w": 0.2,
       "dt": 0.2,
       "maxt": 2.0,
       "mint": 1.0,
-      "d_t_s": 0.5,
-      "n_s_sample": 2.0,
+      "d_t_s": 0.1,
+      "n_s_sample": 10.0,
       "obstacle_clearance": -0.5,
       "kd": 0.1,
       "kv": 0.1,
@@ -129,6 +130,7 @@ for i in range(200):
       # Uncomment to print the planned states of the full_trajectory
       # for state in full_trajectory.state_list:
       #       print(state)
+      # print(speeds_x[1], speeds_y[1])
       
       # Visualize the scenario and trajectories
       visualize_solution(scenario = scenario, 
@@ -150,11 +152,13 @@ for i in range(200):
                   break
                   
             # Parse initial conditions again for the next time step
+            # initial_conditions['target_speed'] = np.sqrt(speeds_x[1]**2 + speeds_y[1]**2)
+            print(speeds[1])
             initial_conditions['pos'] = np.array([result_x[1], result_y[1]])
             initial_conditions['ps'] = misc['s']
             initial_conditions['vel'] = np.array([speeds_x[1], speeds_y[1]])
-            initial_conditions['obs'] = np.array([])      # Uncomment to test with no obstacles
-            # initial_conditions['obs'] = np.array(parser.parse_obstacles(time_step=i+1))         # Comment to test with no obstacles
+            # initial_conditions['obs'] = np.array([])      # Uncomment to test with no obstacles
+            initial_conditions['obs'] = np.array(parser.parse_obstacles(time_step=i+1))         # Comment to test with no obstacles
             acc_states.append(states_list[1][0])
       else:
             # continue

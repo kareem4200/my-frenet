@@ -45,13 +45,13 @@ def create_trajectory_from_list_states(list_paths_primitives: List[List[PMState]
 def visualize_solution(
     scenario: Scenario, 
     planning_problem_set: PlanningProblemSet, 
-    drawn_trajectories: List[Trajectory], 
     excuted_trajectory: Trajectory,
     full_trajectory: Trajectory,
     waypoints, 
     t_s,
     fig,
     ax,
+    drawn_trajectories: List[Trajectory] = None, 
     obstacles = None
 ) -> None:
     """
@@ -152,8 +152,9 @@ def visualize_solution(
                 circle_2.draw(renderer)
 
         # Drawing and rendering
-        for drawn_trajectory in drawn_trajectories:
-            drawn_trajectory.draw(renderer, draw_params=sampled_traj_params)
+        if drawn_trajectories:
+            for drawn_trajectory in drawn_trajectories:
+                drawn_trajectory.draw(renderer, draw_params=sampled_traj_params)
         full_trajectory.draw(renderer, draw_params=traj_params)
         ego_vehicle.draw(renderer, draw_params=ego_params)
         planning_problem_set.draw(renderer)
