@@ -1,4 +1,5 @@
 import os
+import time
 from math import inf
 from typing import List
 import numpy as np
@@ -6,12 +7,12 @@ import matplotlib.pyplot as plt
 from commonroad_utils.parser.scenario import get_scenario
 from commonroad_utils.parser.parser import Parser
 from commonroad.common.util import Interval
-from commonroad.scenario.state import PMState
+from commonroad.scenario.state import ExtendedPMState, PMState
 from commonroad_utils.parser.utils import create_trajectory_from_list_states, visualize_solution, visualize_scenario, create_video
 # import sys
 # sys.path.append('/home/wenguang/workplace/my-frenet/frenet_optimal_trajectory_planner/FrenetOptimalTrajectory')
 
-os.environ["SHOW_SAMPLING_PATH"] = "1"
+os.environ["SHOW_SAMPLING_PATH"] = '0'
 
 scenario_path = os.getcwd() + '/commonroad_utils/Critical_Transformed/'
 scenario_name = 'DEU_Flensburg-67_1_T-1.xml'
@@ -35,30 +36,34 @@ parser = Parser(scenario=scenario, planning_problem=planning_problem,\
 
 EPS = 0.5           # Epsilon of reached goal comparison
 LEN_DRAW = 10     # The length of the drawn trajectory (Number of states)
-
+# print(planning_problem.initial_state.acceleration)
 conds = {
       's0': parser.parse_initial_position(x_only=True),
-      'target_speed': 1.0,
+      'target_speed': 15.0,
       # 'target_speed': planner.x_0.velocity,  # Uncomment to parsing the target speed from the scenario
+      'acc': planning_problem.initial_state.acceleration,
       'wp': parser.parse_waypoints(initial_state=start_pos, goal_state=goal_pos),
       'obs': parser.parse_obstacles(time_step=0),
       'pos': parser.parse_initial_position(x_only=False),
       # 'vel': [initial_vel_x, initial_vel_y], # Velocity in X and Y directions
       'vel': [-0.0, -0.3], # Velocity in X and Y directions
 }
-# print(initial_vel_x, initial_vel_y)
+
+print(initial_vel_x, initial_vel_y)
+
 initial_conditions = {
       'ps': conds['s0'],
       'target_speed': conds['target_speed'],
       'pos': np.array(conds['pos']),
       'vel': np.array(conds['vel']),
+      'acc': np.array(conds['acc']),
       'wp': np.array(conds['wp']),
       # 'obs': np.array([]),  # Uncomment to test with no obstacles
       'obs': np.array(conds['obs'])     # Comment to test with no obstacles
 }
 
 hyperparameters = {
-      "max_speed": 1.5,
+      "max_speed": 100.5,
       "max_accel": 15.0,
       "max_curvature": 100.0,
       "max_road_width_l": 1.75,
@@ -94,24 +99,27 @@ from frenet_optimal_trajectory_planner.FrenetOptimalTrajectory import py_cpp_str
 from frenet_optimal_trajectory_planner.FrenetOptimalTrajectory import fot_wrapper
 
 for i in range(200):
+      # print(show_sampling_path)
       # Run Frenet planner
-      if show_sampling_path:
-            result_x, result_y, speeds, ix, iy, iyaw, d, s, speeds_x, \
+      if int(show_sampling_path):
+            print("Showing Sampling Path")
+            result_x, result_y, speeds, accelerations, ix, iy, iyaw, d, s, speeds_x, \
                 speeds_y, misc, costs, success, runtime_c, sample_x, sample_y = \
                 fot_wrapper.run_fot(initial_conditions, hyperparameters)  
       else:
-            result_x, result_y, speeds, ix, iy, iyaw, d, s, speeds_x, \
-                speeds_y, misc, costs, success, runtime = \
-                fot_wrapper.run_fot(initial_conditions, hyperparameters)
-                
-      states_list: List[List[PMState]] = [[PMState(time_step=i+j, position=np.array([result_x[j], result_y[j]]),\
-                                                velocity=speeds_x[j], velocity_y=speeds_y[j])] for j in range(len(result_x[:LEN_DRAW]))]
+            result_x, result_y, speeds, accelerations, ix, iy, iyaw, d, s, speeds_x, \
+                  speeds_y, misc, costs, success, runtime = \
+                  fot_wrapper.run_fot(initial_conditions, hyperparameters)
+      # print(accelerations)
+      states_list: List[List[ExtendedPMState]] = [[ExtendedPMState(time_step=i+j, position=np.array([result_x[j], result_y[j]]),\
+                                                velocity=speeds[j], orientation=iyaw[j], acceleration=accelerations[j])] for j in range(len(result_x[:LEN_DRAW]))]
       # Create PMState for each sample path
       sampling_states = []
-      for path_x, path_y in zip(sample_x, sample_y):
-            path_states: List[List[PMState]] = [[PMState(time_step=i+j, position=np.array([path_x[j], path_y[j]]), velocity=0, velocity_y=0) for j in range(len(path_x[:LEN_DRAW]))]]
-            sampling_states.append(path_states)
-      
+      if int(show_sampling_path):
+            for path_x, path_y in zip(sample_x, sample_y):
+                  path_states: List[List[PMState]] = [[PMState(time_step=i+j, position=np.array([path_x[j], path_y[j]]), velocity=0, velocity_y=0) for j in range(len(path_x[:LEN_DRAW]))]]
+                  sampling_states.append(path_states)
+            
       # Create trajectories from the sampling states
       sampling_paths = [create_trajectory_from_list_states(path_states) for path_states in sampling_states if path_states]
       
@@ -152,11 +160,13 @@ for i in range(200):
                   break
                   
             # Parse initial conditions again for the next time step
-            # initial_conditions['target_speed'] = np.sqrt(speeds_x[1]**2 + speeds_y[1]**2)
-            print(speeds[1])
+            initial_conditions['target_speed'] = np.sqrt(speeds_x[1]**2 + speeds_y[1]**2)
+            # print(speeds[1])
+            # time.sleep(3)
             initial_conditions['pos'] = np.array([result_x[1], result_y[1]])
             initial_conditions['ps'] = misc['s']
             initial_conditions['vel'] = np.array([speeds_x[1], speeds_y[1]])
+            initial_conditions['acc'] = np.array(accelerations[1])
             # initial_conditions['obs'] = np.array([])      # Uncomment to test with no obstacles
             initial_conditions['obs'] = np.array(parser.parse_obstacles(time_step=i+1))         # Comment to test with no obstacles
             acc_states.append(states_list[1][0])
