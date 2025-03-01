@@ -8,13 +8,13 @@ from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import ObstacleType, DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
-from commonroad.scenario.state import InitialState, PMState
+from commonroad.scenario.state import InitialState, PMState, ExtendedPMState
 from commonroad.visualization.draw_params import DynamicObstacleParams, TrajectoryParams, MPDrawParams
 from commonroad.visualization.mp_renderer import MPRenderer
 from commonroad.geometry.shape import Circle
 from IPython import display
 
-def create_trajectory_from_list_states(list_paths_primitives: List[List[PMState]]) -> Trajectory:
+def create_trajectory_from_list_states(list_paths_primitives: List[List[ExtendedPMState]]) -> Trajectory:
     # turns the solution (list of lists of states) into a CommonRoad Trajectory
     """
     Turns the solution (list of lists of states) into a CommonRoad Trajectory.
@@ -30,13 +30,21 @@ def create_trajectory_from_list_states(list_paths_primitives: List[List[PMState]
 
     for path_primitive in list_paths_primitives:
         for state in path_primitive:
+            # kwarg = {
+            #       "time_step": state.time_step,
+            #       "position": state.position,
+            #       "velocity": state.velocity,
+            #       "velocity_y": state.velocity_y,
+            # }
             kwarg = {
                   "time_step": state.time_step,
                   "position": state.position,
                   "velocity": state.velocity,
-                  "velocity_y": state.velocity_y,
+                  "orientation": state.orientation,
+                  "acceleration": state.acceleration,
+                #   "velocity_y": state.velocity_y,
             }
-            list_states.append(PMState(**kwarg))
+            list_states.append(ExtendedPMState(**kwarg))
 
     return Trajectory(
         initial_time_step=list_states[0].time_step, state_list=list_states
@@ -77,6 +85,7 @@ def visualize_solution(
         orientation=excuted_trajectory.state_list[0].orientation,
         velocity=excuted_trajectory.state_list[0].velocity,
         time_step=excuted_trajectory.state_list[0].time_step,
+        acceleration=excuted_trajectory.state_list[0].acceleration,
         yaw_rate=0,
         slip_angle=0,
     )
