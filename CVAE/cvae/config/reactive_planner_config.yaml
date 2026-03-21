@@ -1,0 +1,21 @@
+debug:
+  draw_icons: true
+  draw_traj_set: false
+  multiproc: false
+  save_plots: true
+  show_plots: false
+general:
+  path_scenarios: "/home/kareem/frenet_optimal_trajectory_planner/CVAE/cvae/scenarios"
+planning:
+  dt: 0.1
+  replanning_frequency: 1
+  time_steps_computation: 50
+sampling:
+  t_min: 0.2
+  cvae_sampling: true
+  z_dim: 32
+  c_dim: 518
+  num_samples: 3
+  cvae_model_path: "/home/kareem/frenet_optimal_trajectory_planner/CVAE/cvae/model/weights/cvae_model_lr_0.005_batch_128_epochs_100_zdim_32_kl_beta_1.0.pth"
+vehicle:
+  id_type_vehicle: 2
